@@ -1,0 +1,32 @@
+log:
+  level: info
+
+api:
+  rest:
+    host: '0.0.0.0'
+    port: 8080
+    spec: ./openapi.yaml
+    cors:
+      allowedOrigins:
+        - '*'
+      allowedHeaders:
+        - Content-Type
+        - Sec-Fetch-Dest
+        - Referer
+        - Accept
+        - User-Agent
+        - RA-API-KEY
+      allowedMethods:
+        - OPTIONS
+        - GET
+        - POST
+
+datasource:
+  type: postgres
+  host: localhost
+  port: 5432
+  database: webhook_manager
+  sslMode: disable
+  migrations: "db/migrations"
+  username: user
+  password: password

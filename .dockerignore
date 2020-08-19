@@ -1,0 +1,8 @@
+/config
+/volumes
+/.env*
+/.gitignore
+/docker-compose.yaml
+/Dockerfile
+/Makefile
+/README.md

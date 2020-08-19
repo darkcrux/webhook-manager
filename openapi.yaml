@@ -1,0 +1,495 @@
+openapi: 3.0.0
+
+info:
+  title: Webhook Manager
+  description: >-
+    API for managing webhooks
+  version: "1.0.0"
+tags:
+  - name: internal
+    description: >-
+      Endpoints used for internal systems
+  - name: customer
+    description: >-
+      Endpoints that can be accessed by external customers
+
+paths:
+
+  /transaction-types:
+    post:
+      description: >-
+        Register a new transaction type that can be used by customers to define
+        webhooks
+      tags:
+        - internal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        201:
+          description: >-
+            New transaction type successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTransactionResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+    get:
+      description: >-
+        Return a list of transaction types
+      tags:
+        - internal
+        - customer
+      responses:
+        200:
+          description: >-
+            Successful query returns all transaction types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionType'
+        default:
+          $ref: '#/components/responses/jsonError'
+            
+  /send-notification:
+    post:
+      description: >-
+        Send a notification to a webhook
+      tags:
+        - internal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendNotificationRequest'
+      responses:
+        200:
+          description: >-
+            Successful notification request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+
+  /customers:
+    post:
+      description: >-
+        Register a new customer
+      tags:
+        - internal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        201:
+          description: >-
+            Successfully registered new customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCustomerResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+  
+  /customers/{id}/webhooks:
+    post:
+      description: >-
+        Register a new webhook for a customer
+      tags:
+        - customer
+      parameters: 
+        - name: id
+          description: >-
+            The ID of the customer
+          in: path
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        201:
+          description: >-
+            Webhook created successfully 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+      
+  /customers/{customer-id}/webhooks/{webhook-id}:
+    post:
+      description: >-
+        Update a webhook
+      tags:
+        - customer
+      parameters: 
+        - name: customer-id
+          description: >-
+            The customer ID
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: webhook-id
+          description: >-
+            The webhook ID
+          in: path
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+      responses:
+        201:
+          description: >-
+            Webhook created successfully 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+          
+  /customers/{customer-id}/webhooks/{webhook-id}/test:
+    post:
+      description: >-
+        Update a webhook
+      tags:
+        - customer
+      parameters: 
+        - name: customer-id
+          description: >-
+            The customer ID
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: webhook-id
+          description: >-
+            The webhook ID
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        201:
+          description: >-
+            Webhook created successfully 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+
+  /customers/{customer-id}/notifications/{notification-id}/retry:
+    post:
+      description: >-
+        Retry a notification
+      tags:
+        - customer
+      parameters: 
+        - name: customer-id
+          description: >-
+            The customer ID
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: notification-id
+          description: >-
+            The notification ID
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: >-
+            Notification Retry request sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        default:
+          $ref: '#/components/responses/jsonError'
+
+  /customers/{customer-id}/notifications:
+    get:
+      description: >-
+        Returns a list of notifications and their statuses
+      tags:
+        - customer
+      parameters: 
+        - name: customer-id
+          description: >-
+            The customer ID
+          in: path
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: >-
+            Notification Retry request sent
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        default:
+          $ref: '#/components/responses/jsonError'
+
+components:
+
+  responses:
+    jsonError:
+      description: >-
+        A detailed JSON errors will be returned when there's an issue calling the
+        endpoint.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      description: >-
+        A JSON Error encapsulates the error returned from an enpoint to a 
+        standard
+      type: object
+      properties:
+        id:
+          type: string
+          description: >-
+            a unique identifier for this particular occurrence of the problem.
+        links:
+          type: object
+          description: >-
+            a links object containing the following members;
+          properties:
+            about:
+              type: string
+              description: >-
+                a link that leads to further details about this particular 
+                occurrence of the problem.
+          additionalProperties: true
+        status:
+          type: string
+          description: >-
+            the HTTP status code applicable to this problem, expressed as a
+            string value.
+        code:
+          type: string
+          description: >-
+            an application-specific error code, expressed as a string value.
+        title:
+          type: string
+          description: >-
+            a short, human-readable summary of the problem that SHOULD NOT
+            change from occurrence to occurrence of the problem, except for
+            purposes of localization.
+        detail:
+          type: string
+          description: >-
+            a human-readable explanation specific to this occurrence of the
+            problem. Like title, this field’s value can be localized.
+        source:
+          type: array
+          description: >-
+            an object containing references to the source of the error, 
+            optionally including any of the following members;
+          items:
+            type: object
+            properties:
+              pointer:
+                type: string
+                description: >-
+                  a JSON Pointer [RFC6901] to the associated entity in the
+                  request document [e.g. "/data" for a primary data object, or "
+                  /data/attributes/title" for a specific attribute].
+              parameter:
+                type: string
+                description: >-
+                  a string indicating which parameter caused the error.
+        meta:
+          type: object
+          description: >-
+            a meta object containing non-standard meta-information about the 
+            error.
+          additionalProperties: true
+
+    CreateTransactionRequest:
+      type: object
+      description: >-
+        The request body for creating new transaction types
+      properties:
+        name:
+          type: string
+          description: >-
+            The name of the transaction type. should not be more than 20
+            characters
+          maxLength: 20
+          example: paysome-invoice
+        description:
+          type: string
+          description: >-
+            A long description of the transaction type.
+          example: >-
+            paysome-invoice will be call a webhook once a new invoice is created
+        sample-payload: 
+          type: object
+          description: >-
+            A sample payload that will be forwarded to the webhook
+
+    CreateTransactionResponse:
+      type: object
+      
+    TransactionType:
+      type: object
+      description: >-
+        A representation of a transaction type
+      properties:
+        transaction-type-id:
+          type: integer
+          description: >-
+            The ID of the transaction type
+      allOf:
+        - $ref: '#/components/schemas/CreateTransactionRequest'
+        
+    SendNotificationRequest:
+      type: object
+      description: >-
+        Request body to send a notification to webhook
+      properties:
+        transaction-type-id:
+          type: integer
+          description: >-
+            The ID of the transaction type
+        customer-id:
+          type: integer
+          description: >-
+            The ID of the customer
+        payload:
+          type: object
+          description: >-
+            The payload to send to the webhook
+    
+    CreateCustomerRequest:
+      type: object
+      description: >-
+        Request body for creating a new customer
+      properties:
+        customer-external-id:
+          type: string
+          description: >-
+            The external ID of a customer. 
+        unique-key:
+          type: string
+          description: >-
+            A unique key that the customer nominates that can be verified once
+            webhook notifications are sent. This will be included in the request
+            header.
+    
+    CreateCustomerResponse:
+      type: object
+      description: >-
+        Response body for a successful customer registration
+      properties:
+        customer-id:
+          type: integer
+          description: >-
+            The internal ID of the customer, should be used in subsequent tx
+  
+    CreateWebhookRequest:
+      type: object
+      description: >-
+        The request body for creating a new webhook definition
+      properties:
+        transaction-type-id:
+          type: integer
+          description: >-
+            The transaction type id
+        webhook-url:
+          type: string
+          description: >-
+            The webhook URL
+    
+    WebhookResponse:
+      type: object
+      description: >-
+        The response body of a successful create webhook transaction
+      properties:
+        webhook-id:
+          type: integer
+          description: >-
+            The webhook ID
+            
+    UpdateWebhookRequest:
+      type: object
+      description: >-
+        The request body for creating a new webhook definition
+      properties:
+        webhook-url:
+          type: string
+          description: >-
+            The webhook URL
+            
+    NotificationResponse:
+      type: object
+      description: >-
+        The response body of a successful create notification transaction
+      properties:
+        notification-id:
+          type: integer
+          description: >-
+            The webhook ID
+            
+    Notification:
+      type: object
+      description: >-
+        The object representation of a notification
+      properties:
+        notification-id:
+          type: integer
+          description: >-
+            The notification ID
+        status:
+          type: string
+          description: >-
+            The notification status
+          enum: 
+            - PENDING
+            - SUCCESS
+            - FAIL
+        fail-reason:
+          type: string
+          description: >-
+            The reason why the notification failed
+        payload:
+          type: object
+          description: >-
+            The payload of the notification
+
+      
