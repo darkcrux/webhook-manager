@@ -1,6 +1,8 @@
 # github.com/darkcrux/mux-responses v1.0.0
 ## explicit
 github.com/darkcrux/mux-responses
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/golang-migrate/migrate/v4 v4.11.0
@@ -74,6 +76,8 @@ github.com/pelletier/go-toml
 # github.com/pierrec/lz4 v2.0.5+incompatible
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/segmentio/kafka-go v0.4.2
 ## explicit
 github.com/segmentio/kafka-go
@@ -113,6 +117,12 @@ github.com/spf13/pflag
 # github.com/spf13/viper v1.7.0
 ## explicit
 github.com/spf13/viper
+# github.com/stretchr/objx v0.2.0
+github.com/stretchr/objx
+# github.com/stretchr/testify v1.6.1
+## explicit
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/mock
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
 # golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
@@ -125,3 +135,5 @@ gopkg.in/ini.v1
 # gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
