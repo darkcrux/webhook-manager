@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/jinzhu/gorm"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/darkcrux/webhook-manager/internal/component/customer"
 )
@@ -16,7 +17,7 @@ func NewGormCustomerRepository(db *gorm.DB) customer.Repository {
 
 func (repo *GormCustomerRepository) Save(c *customer.Customer) (id int, err error) {
 	if err = repo.db.Save(c).Error; err != nil {
-		// what went wrong?
+		log.WithError(err).Error("error saving customer")
 		return
 	}
 	id = *c.ID
@@ -26,7 +27,7 @@ func (repo *GormCustomerRepository) Save(c *customer.Customer) (id int, err erro
 func (repo *GormCustomerRepository) GetByID(id int) (c *customer.Customer, err error) {
 	c = &customer.Customer{}
 	if err = repo.db.Find(c, "id = ?", id).Error; err != nil {
-		// log
+		log.WithError(err).Error("error getting customer")
 		return
 	}
 	return
