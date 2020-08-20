@@ -89,7 +89,6 @@ webhook-manager
 |- cmd/                 # command line commands live here. Checkout cobra library
 |- config/              # configuration files are here
 |- db/                  # for database migration files
-|- helm/                # helm chart for kubernetes deployment
 |- internal/            # for internal go packages 
 | |- component/         # the actual domains / business logic live here including the ports for integration
 | |- entrypoint/        # entrypoint for the application, the REST API handlers are here

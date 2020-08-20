@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,11 @@ import (
 	"github.com/darkcrux/webhook-manager/internal/component/transport"
 	"github.com/darkcrux/webhook-manager/internal/component/txtypes"
 	"github.com/darkcrux/webhook-manager/internal/component/webhook"
+)
+
+const (
+	maxRetry  = 5
+	retryWait = 5 * time.Second
 )
 
 type DefaultService struct {
@@ -84,6 +90,7 @@ func (s *DefaultService) Send(notif *Notification) (id int, err error) {
 		log.WithError(err).Error("Sending Notification failed")
 		return
 	}
+	notif.Status = "PENDING"
 	notif.IdemKey = uuid
 	notif.Payload, err = json.Marshal(notif.Payload)
 	if err != nil {
@@ -184,6 +191,7 @@ func (s *DefaultService) publishNotification(notif *Notification) (err error) {
 		IdemKey:   notif.IdemKey,
 		URL:       wh.WebhookURL,
 		Payload:   notif.Payload,
+		Retry:     0,
 	}
 
 	if err = json.Unmarshal(pubNotif.Payload.([]byte), &pubNotif.Payload); err != nil {
@@ -217,9 +225,10 @@ func (s *DefaultService) notifHandler(notif *transport.Notification) error {
 	if err != nil {
 		log.WithError(err).Error("Unable to marshal request to JSON")
 		s.tService.PublishNotificationStatus(&transport.NotificationStatus{
-			ID:         notif.ID,
-			Status:     "FAIL",
-			FailReason: err.Error(),
+			ID:                   notif.ID,
+			Status:               "FAIL",
+			FailReason:           err.Error(),
+			PreviousNotification: *notif,
 		})
 		return err
 	}
@@ -228,9 +237,10 @@ func (s *DefaultService) notifHandler(notif *transport.Notification) error {
 	if err != nil {
 		log.WithError(err).Error("Unable to create new HTTP Request")
 		s.tService.PublishNotificationStatus(&transport.NotificationStatus{
-			ID:         notif.ID,
-			Status:     "FAIL",
-			FailReason: err.Error(),
+			ID:                   notif.ID,
+			Status:               "FAIL",
+			FailReason:           err.Error(),
+			PreviousNotification: *notif,
 		})
 		return err
 	}
@@ -241,24 +251,27 @@ func (s *DefaultService) notifHandler(notif *transport.Notification) error {
 	if err != nil {
 		log.WithError(err).Error("Unable to call webhook")
 		s.tService.PublishNotificationStatus(&transport.NotificationStatus{
-			ID:         notif.ID,
-			Status:     "FAIL",
-			FailReason: err.Error(),
+			ID:                   notif.ID,
+			Status:               "FAIL",
+			FailReason:           err.Error(),
+			PreviousNotification: *notif,
 		})
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
 		log.Errorf("Webhook did not return OK: %d", res.StatusCode)
 		s.tService.PublishNotificationStatus(&transport.NotificationStatus{
-			ID:         notif.ID,
-			Status:     "FAIL",
-			FailReason: "webhook did not return OK",
+			ID:                   notif.ID,
+			Status:               "FAIL",
+			FailReason:           "webhook did not return OK",
+			PreviousNotification: *notif,
 		})
 		return err
 	}
 	err = s.tService.PublishNotificationStatus(&transport.NotificationStatus{
-		ID:     notif.ID,
-		Status: "SUCCESS",
+		ID:                   notif.ID,
+		Status:               "SUCCESS",
+		PreviousNotification: *notif,
 	})
 	if err != nil {
 		log.WithError(err).Error("Unable to publish notification")
@@ -270,6 +283,23 @@ func (s *DefaultService) notifHandler(notif *transport.Notification) error {
 
 func (s *DefaultService) notifStatusHandler(notifStatus *transport.NotificationStatus) error {
 	log.Info("Handling new Notification Status Update Mesasge")
+
+	// retry until max is reached
+	if notifStatus.Status == "FAIL" {
+		notif := notifStatus.PreviousNotification
+		if notif.Retry < maxRetry {
+			// retry threshold not met, retrying
+			notif.Retry = notif.Retry + 1
+			log.Infof("Retrying failed notification: notif-id: %d, retry: %d", notif.ID, notif.Retry)
+			time.AfterFunc(retryWait, func() {
+				s.tService.PublishNotification(&notif)
+			})
+			return nil
+		}
+		log.Info("Retry Limit reached, failing")
+	}
+
+	// else update status
 	err := s.repo.UpdateStatus(notifStatus.ID, notifStatus.Status)
 	if err != nil {
 		log.WithError(err).Error("Unable to update notification status")

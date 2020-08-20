@@ -32,7 +32,7 @@ CREATE TABLE webhooks (
 
 CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
-        idem_key TEXT NOT NULL,
+    idem_key TEXT NOT NULL,
     webhook_id INTEGER NOT NULL,
     payload JSON NOT NULL,
     status VARCHAR(10) NOT NULL,

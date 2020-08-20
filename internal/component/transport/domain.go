@@ -6,10 +6,12 @@ type Notification struct {
 	IdemKey   string      `json:"idem-key"`
 	URL       string      `json:"url"`
 	Payload   interface{} `json:"payload"`
+	Retry     int         `json:"retry"`
 }
 
 type NotificationStatus struct {
-	ID         int    `json:"id"`
-	Status     string `json:"string"`
-	FailReason string `json:"fail-reason"`
+	ID                   int          `json:"id"`
+	Status               string       `json:"string"`
+	FailReason           string       `json:"fail-reason"`
+	PreviousNotification Notification `json:"previous-notification"`
 }
