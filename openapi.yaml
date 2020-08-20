@@ -129,6 +129,31 @@ paths:
                 $ref: '#/components/schemas/WebhookResponse'
         default:
           $ref: '#/components/responses/jsonError'
+    get:
+      description: >-
+        Get a list of webhooks for a customer
+      tags:
+        - customer
+      parameters:
+        - name: id
+          description: >-
+            The ID of the customer
+          in: path
+          schema:
+            type: integer
+          required: true
+      responses:
+        200:
+          description: >-
+            List of webhooks for the provided customer
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+        default:
+          $ref: '#/components/responses/jsonError'
       
   /customers/{customer-id}/webhooks/{webhook-id}:
     post:
@@ -491,5 +516,27 @@ components:
           type: object
           description: >-
             The payload of the notification
+            
+    Webhook:
+      type: object
+      description: >-
+        A webhook
+      properties:
+        id:
+          type: integer
+          description: >-
+            The webhook ID
+        customer-id:
+          type: integer
+          description: >-
+            The customer ID
+        transaction-type-id:
+          type: integer
+          description: >-
+            The transaction type ID
+        webhook-url:
+          type: string
+          description: >-
+            The webhook URL
 
       

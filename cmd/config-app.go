@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -9,6 +11,7 @@ type (
 	appConfig struct {
 		Log        logConfig        `mapstructure:"log"`
 		API        apiConfig        `mapstructure:"api"`
+		Kafka      kafkaConfig      `mapstructure:"kafka"`
 		Datasource datasourceConfig `mapstructure:"datasource"`
 	}
 
@@ -33,6 +36,14 @@ type (
 	securityConfig struct {
 		JWTPublicKey string `mapstructure:"jwtPublicKey"`
 		RBACConfig   string `mapstructure:"rbacConfig"`
+	}
+
+	kafkaConfig struct {
+		Brokers        []string      `mapstructure:"brokers"`
+		Partition      int           `mapstructure:"partition"`
+		MinBytes       int           `mapstructure:"minBytes"`
+		MaxBytes       int           `mapstructure:"maxBytes"`
+		CommitInterval time.Duration `mapstructure:"commitInterval"`
 	}
 
 	datasourceConfig struct {
@@ -87,6 +98,13 @@ func defaultConfig() appConfig {
 					},
 				},
 			},
+		},
+		Kafka: kafkaConfig{
+			Brokers:        []string{"localhost:29092"},
+			Partition:      0,
+			MinBytes:       10240,
+			MaxBytes:       10485760,
+			CommitInterval: 5 * time.Millisecond,
 		},
 		Datasource: datasourceConfig{
 			Type:       "postgres",

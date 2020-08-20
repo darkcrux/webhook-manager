@@ -32,3 +32,12 @@ func (repo *GormTxTypeRepository) List() (txTypes []txtypes.TransactionType, err
 	}
 	return
 }
+
+func (repo *GormTxTypeRepository) Get(id int) (t *txtypes.TransactionType, err error) {
+	t = &txtypes.TransactionType{}
+	if err = repo.db.Find(&t, "id = ?", id).Error; err != nil {
+		// log
+		return
+	}
+	return
+}

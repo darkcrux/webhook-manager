@@ -30,6 +30,11 @@ func (c *Controller) Register(router *mux.Router) {
 		HandlerFunc(createWebhook(service))
 
 	tx.
+		Methods(http.MethodGet, http.MethodOptions).
+		Path("/customers/{id}/webhooks").
+		HandlerFunc(listWebhooks(service))
+
+	tx.
 		Methods(http.MethodPost, http.MethodOptions).
 		Path("/customers/{customer-id}/webhooks/{webhook-id}").
 		HandlerFunc(updateWebhook(service))

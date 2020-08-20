@@ -22,3 +22,12 @@ func (repo *GormCustomerRepository) Save(c *customer.Customer) (id int, err erro
 	id = *c.ID
 	return
 }
+
+func (repo *GormCustomerRepository) GetByID(id int) (c *customer.Customer, err error) {
+	c = &customer.Customer{}
+	if err = repo.db.Find(c, "id = ?", id).Error; err != nil {
+		// log
+		return
+	}
+	return
+}

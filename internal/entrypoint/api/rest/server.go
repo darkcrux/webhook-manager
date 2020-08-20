@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/customer"
+	"github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/notification"
 	"github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/txtypes"
 	"github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/webhook"
 )
@@ -27,22 +28,24 @@ type (
 		AllowedMethods []string
 	}
 	API struct {
-		config             *Config
-		router             *mux.Router
-		txtypesController  *txtypes.Controller
-		customerController *customer.Controller
-		webhookController  *webhook.Controller
+		config                 *Config
+		router                 *mux.Router
+		txtypesController      *txtypes.Controller
+		customerController     *customer.Controller
+		webhookController      *webhook.Controller
+		notificationController *notification.Controller
 	}
 )
 
-func NewRestAPI(config *Config, router *mux.Router, txtypesController *txtypes.Controller, customerController *customer.Controller, webhookController *webhook.Controller) *API {
+func NewRestAPI(config *Config, router *mux.Router, txtypesController *txtypes.Controller, customerController *customer.Controller, webhookController *webhook.Controller, notificationController *notification.Controller) *API {
 
 	return &API{
-		config:             config,
-		router:             router,
-		txtypesController:  txtypesController,
-		customerController: customerController,
-		webhookController:  webhookController,
+		config:                 config,
+		router:                 router,
+		txtypesController:      txtypesController,
+		customerController:     customerController,
+		webhookController:      webhookController,
+		notificationController: notificationController,
 	}
 }
 
@@ -51,6 +54,7 @@ func (api *API) Run() error {
 	api.enableCORS()
 	api.addMiddlewares()
 	api.registerHandlers()
+	api.startListeners()
 	return http.ListenAndServe(api.address(), api.router)
 }
 
@@ -80,8 +84,16 @@ func (api *API) addMiddlewares() {
 }
 
 func (api *API) registerHandlers() {
-	log.Infof("Register Handlers")
+	log.Info("Register Handlers")
 	api.txtypesController.Register(api.router)
 	api.customerController.Register(api.router)
 	api.webhookController.Register(api.router)
+	api.notificationController.Register(api.router)
+}
+
+func (api *API) startListeners() {
+	log.Info("Starting Listeners")
+	if err := api.notificationController.StartListener(); err != nil {
+		log.WithError(err).Error("error starting listeners")
+	}
 }

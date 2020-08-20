@@ -21,6 +21,14 @@ api:
         - GET
         - POST
 
+kafka:
+  brokers:
+    - localhost:29092
+  partition: 0
+  minBytes: 10240
+  maxBytes: 10485760
+  commitInterval: 5ms
+
 datasource:
   type: postgres
   host: localhost

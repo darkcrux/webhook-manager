@@ -26,17 +26,26 @@ func (c *Controller) Register(router *mux.Router) {
 
 	tx.
 		Methods(http.MethodGet, http.MethodOptions).
-		Path("/notifications").
+		Path("/customers/{customer-id}/notifications").
 		HandlerFunc(listNotification(service))
 
 	tx.
 		Methods(http.MethodPost, http.MethodOptions).
 		Path("/send-notification").
-		HandlerFunc(listNotification(service))
+		HandlerFunc(sendNotification(service))
 
 	tx.
 		Methods(http.MethodPost, http.MethodOptions).
 		Path("/customers/{customer-id}/notifications/{notification-id}/retry").
 		HandlerFunc(retryNotification(service))
 
+	tx.
+		Methods(http.MethodPost, http.MethodOptions).
+		Path("/customers/{customer-id}/webhooks/{webhook-id}/test").
+		HandlerFunc(testNotification(service))
+
+}
+
+func (c *Controller) StartListener() error {
+	return c.service.StartLiseners()
 }

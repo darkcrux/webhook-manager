@@ -1,29 +1,56 @@
 package repository
 
-// import (
-// 	"github.com/jinzhu/gorm"
+import (
+	"github.com/jinzhu/gorm"
 
-// 	"github.com/darkcrux/notification-manager/internal/component/notification"
-// )
+	"github.com/darkcrux/webhook-manager/internal/component/notification"
+)
 
-// type GormNotificationRepository struct {
-// 	db *gorm.DB
-// }
+type GormNotificationRepository struct {
+	db *gorm.DB
+}
 
-// func NewGormNotificationRepository(db *gorm.DB) notification.Notification {
-// 	return &GormNotificationRepository{db}
-// }
+func NewGormNotificationRepository(db *gorm.DB) notification.Repository {
+	return &GormNotificationRepository{db}
+}
 
-// func (repo *GormNotificationRepository) Save(tx *notification) (id int, err error) {
-// 	if err = repo.db.Save(tx).Error; err != nil {
-// 		// what went wrong?
-// 		return
-// 	}
-// 	id = *tx.ID
-// 	return
-// }
+func (repo *GormNotificationRepository) Create(notif *notification.Notification) (id int, err error) {
+	err = repo.db.Save(notif).Error
+	if err != nil {
+		// log
+		return
+	}
+	id = *notif.ID
+	return
+}
 
-// func (repo *GormNotificationRepository) GetByTxIDAndCustomerID(txID, customerID int) (wh *notification.notification, err error) {
+func (repo *GormNotificationRepository) Get(id int) (notif *notification.Notification, err error) {
+	notif = &notification.Notification{}
+	if err = repo.db.Find(notif, "id = ?", id).Error; err != nil {
+		// log
+		return
+	}
+	return
+}
 
-// 	return
-// }
+func (repo *GormNotificationRepository) List(customerID int) (notifs []notification.Notification, err error) {
+	notifs = []notification.Notification{}
+	if err = repo.db.Find(&notifs).Error; err != nil {
+		// log
+		return
+	}
+	return
+}
+
+func (repo *GormNotificationRepository) UpdateStatus(id int, status string) (err error) {
+	notif, err := repo.Get(id)
+	if err != nil {
+		// log
+		return
+	}
+	notif.Status = status
+	if err = repo.db.Save(notif).Error; err != nil {
+		// log
+	}
+	return
+}

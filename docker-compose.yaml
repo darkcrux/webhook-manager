@@ -17,7 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-
   swagger:
     image: swaggerapi/swagger-ui:v3.25.0
     container_name: swagger
@@ -32,4 +31,36 @@ services:
     restart: always
     ports:
       - 9998:8080
-      
+
+  zoo1:
+    container_name: zookeeper
+    image: bitnami/zookeeper:3.6.0
+    restart: on-failure
+    ports:
+      - 2181:2181
+    environment:  
+      - ZOO_ENABLE_AUTH=yes
+      - ZOO_SERVER_USERS=admin
+      - ZOO_SERVER_PASSWORDS=admin1
+      - ZOO_SERVERS=server.1=mdm-zookeeper:2888:3888
+    volumes:
+      - ./volumes/zoo1:/bitnami/zookeeper
+  kafka:
+    container_name: kafka
+    image: bitnami/kafka:2.3.0
+    restart: on-failure
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zoo1:2181
+      - ALLOW_PLAINTEXT_LISTENER=true
+      - KAFKA_ZOOKEEPER_USER=admin
+      - KAFKA_ZOOKEEPER_PASSWORD=admin1
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_HOST://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092, PLAINTEXT_HOST://localhost:29092
+    volumes:
+      - ./volumes/kafka:/bitnami/kafka
+    depends_on:
+      - zoo1   

@@ -7,16 +7,21 @@ package cmd
 
 import (
 	"github.com/darkcrux/webhook-manager/internal/component/customer"
+	"github.com/darkcrux/webhook-manager/internal/component/notification"
+	"github.com/darkcrux/webhook-manager/internal/component/transport"
 	"github.com/darkcrux/webhook-manager/internal/component/txtypes"
 	"github.com/darkcrux/webhook-manager/internal/component/webhook"
 	"github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest"
 	customer2 "github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/customer"
+	notification2 "github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/notification"
 	txtypes2 "github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/txtypes"
 	webhook2 "github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/webhook"
+	kafka2 "github.com/darkcrux/webhook-manager/internal/infrastructure/kafka"
 	"github.com/darkcrux/webhook-manager/internal/infrastructure/postgres"
 	"github.com/darkcrux/webhook-manager/internal/infrastructure/postgres/repository"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"os"
 )
@@ -42,7 +47,12 @@ func createRestAPI() *rest.API {
 	webhookRepository := repository.NewGormWebhookRepository(db)
 	webhookService := webhook.NewDefaultService(webhookRepository)
 	webhookController := webhook2.NewController(webhookService)
-	api := rest.NewRestAPI(config, router, controller, customerController, webhookController)
+	notificationRepository := repository.NewGormNotificationRepository(db)
+	messageBus := ProvideMessageBus(cmdAppConfig)
+	transportService := transport.NewDefaultService(messageBus)
+	notificationService := notification.NewDefaultService(notificationRepository, webhookService, service, customerService, transportService)
+	notificationController := notification2.NewController(notificationService)
+	api := rest.NewRestAPI(config, router, controller, customerController, webhookController, notificationController)
 	return api
 }
 
@@ -106,4 +116,32 @@ func ProvideGormDB(datasource *postgres.Datasource) *gorm.DB {
 		os.Exit(1)
 	}
 	return db
+}
+
+func ProvideMessageBus(config appConfig) transport.MessageBus {
+	notifWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  config.Kafka.Brokers,
+		Topic:    "notif.send",
+		Balancer: &kafka.LeastBytes{},
+	})
+	notifStatusWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  config.Kafka.Brokers,
+		Topic:    "notif.update",
+		Balancer: &kafka.LeastBytes{},
+	})
+	notifReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  config.Kafka.Brokers,
+		GroupID:  "notif.senders",
+		Topic:    "notif.send",
+		MinBytes: config.Kafka.MinBytes,
+		MaxBytes: config.Kafka.MaxBytes,
+	})
+	notifStatusReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  config.Kafka.Brokers,
+		GroupID:  "notif.updaters",
+		Topic:    "notif.update",
+		MinBytes: config.Kafka.MinBytes,
+		MaxBytes: config.Kafka.MaxBytes,
+	})
+	return kafka2.NewKafkaNotifMessageBus(notifWriter, notifStatusWriter, notifReader, notifStatusReader)
 }

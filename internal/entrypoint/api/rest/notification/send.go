@@ -18,17 +18,28 @@ func sendNotification(service notification.Service) http.HandlerFunc {
 
 		log.Info("send notification started")
 
-		var request notification.Notification
-		json.NewDecoder(req.Body).Decode(&request)
+		var request NotificationRequest
+		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+			log.WithError(err).Error("unable to read request body")
+			responses.WriteUnreadableRequestError(res)
+			return
+		}
 
-		notifs, err := service.Send(&request)
+		id, err := service.SendInternal(
+			request.TransactionTypeID,
+			request.CustomerID,
+			request.Payload,
+		)
 		if err != nil {
 			log.WithError(err).Error("unable to send notification")
 			responses.WriteGatewayTimeout(res)
 			return
 		}
 
-		responses.WriteOKWithEntity(res, notifs)
+		response := map[string]interface{}{
+			"notification-id": id,
+		}
+		responses.WriteOKWithEntity(res, response)
 
 		log.Info("send notification success")
 	}

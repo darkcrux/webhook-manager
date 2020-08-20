@@ -8,6 +8,7 @@ import (
 	"github.com/google/wire"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"github.com/segmentio/kafka-go"
 
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ import (
 	"github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest"
 	"github.com/darkcrux/webhook-manager/internal/infrastructure/postgres"
 
+	messagebus "github.com/darkcrux/webhook-manager/internal/infrastructure/kafka"
 	repository "github.com/darkcrux/webhook-manager/internal/infrastructure/postgres/repository"
 
 	txtypesService "github.com/darkcrux/webhook-manager/internal/component/txtypes"
@@ -26,6 +28,11 @@ import (
 
 	webhookService "github.com/darkcrux/webhook-manager/internal/component/webhook"
 	webhookHandler "github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/webhook"
+
+	notificationService "github.com/darkcrux/webhook-manager/internal/component/notification"
+	notificationHandler "github.com/darkcrux/webhook-manager/internal/entrypoint/api/rest/notification"
+
+	"github.com/darkcrux/webhook-manager/internal/component/transport"
 )
 
 func createRestAPI() *rest.API {
@@ -33,6 +40,7 @@ func createRestAPI() *rest.API {
 		ProvideConfig,
 		ProvideDatasource,
 		ProvideGormDB,
+		ProvideMessageBus,
 
 		// txtypes
 		repository.NewGormTxTypeRepository,
@@ -48,6 +56,14 @@ func createRestAPI() *rest.API {
 		repository.NewGormWebhookRepository,
 		webhookService.NewDefaultService,
 		webhookHandler.NewController,
+
+		// transport
+		transport.NewDefaultService,
+
+		// notification
+		repository.NewGormNotificationRepository,
+		notificationService.NewDefaultService,
+		notificationHandler.NewController,
 
 		mux.NewRouter,
 		ProvideRestAPIConfig,
@@ -116,4 +132,32 @@ func ProvideGormDB(datasource *postgres.Datasource) *gorm.DB {
 		os.Exit(1)
 	}
 	return db
+}
+
+func ProvideMessageBus(config appConfig) transport.MessageBus {
+	notifWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  config.Kafka.Brokers,
+		Topic:    "notif.send",
+		Balancer: &kafka.LeastBytes{},
+	})
+	notifStatusWriter := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  config.Kafka.Brokers,
+		Topic:    "notif.update",
+		Balancer: &kafka.LeastBytes{},
+	})
+	notifReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  config.Kafka.Brokers,
+		GroupID:  "notif.senders",
+		Topic:    "notif.send",
+		MinBytes: config.Kafka.MinBytes,
+		MaxBytes: config.Kafka.MaxBytes,
+	})
+	notifStatusReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  config.Kafka.Brokers,
+		GroupID:  "notif.updaters",
+		Topic:    "notif.update",
+		MinBytes: config.Kafka.MinBytes,
+		MaxBytes: config.Kafka.MaxBytes,
+	})
+	return messagebus.NewKafkaNotifMessageBus(notifWriter, notifStatusWriter, notifReader, notifStatusReader)
 }
